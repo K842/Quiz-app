@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BrainZap ⚡ Quiz App</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div id="home-screen" class="screen active">
+    <div class="card">
+      <div class="logo">BrainZap ⚡</div>
+      <p class="tagline">Pick a category. Beat the clock. Dominate the board.</p>
+      <div class="section-label">Category</div>
+      <div class="cat-grid" id="cat-grid">
+        <button class="cat-btn selected" data-cat="general"><span class="cat-icon">🌍</span> General Knowledge</button>
+        <button class="cat-btn" data-cat="science"><span class="cat-icon">🔬</span> Science &amp; Nature</button>
+        <button class="cat-btn" data-cat="history"><span class="cat-icon">🏛️</span> History</button>
+        <button class="cat-btn" data-cat="sports"><span class="cat-icon">🏅</span> Sports</button>
+        <button class="cat-btn" data-cat="tech"><span class="cat-icon">💻</span> Technology</button>
+        <button class="cat-btn" data-cat="geography"><span class="cat-icon">🗺️</span> Geography</button>
+      </div>
+      <div class="section-label">Difficulty</div>
+      <div class="diff-row" id="diff-row">
+        <button class="diff-btn selected" data-diff="easy">🟢 Easy</button>
+        <button class="diff-btn" data-diff="medium">🟡 Medium</button>
+        <button class="diff-btn" data-diff="hard">🔴 Hard</button>
+      </div>
+      <button class="btn-primary" id="start-btn">Start Quiz →</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-screen" class="screen">
+    <div class="card">
+      <div class="quiz-header">
+        <div class="q-counter">Question <b id="q-num">1</b> / <b id="q-total">10</b></div>
+        <div class="score-badge">⚡ <span id="live-score">0</span> pts</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="prog"></div></div>
+      <div class="timer-row">
+        <span>⏱</span>
+        <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+        <div class="timer-num" id="timer-num">15</div>
+      </div>
+      <div class="question-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+      <div class="explanation" id="explanation"></div>
+      <div class="quiz-footer">
+        <button class="btn-next" id="next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="screen">
+    <div class="card">
+      <div class="result-emoji" id="r-emoji">🏆</div>
+      <div class="result-title" id="r-title">Brilliant!</div>
+      <div class="result-sub"   id="r-sub">You crushed it.</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val a" id="r-score">0</div><div class="stat-key">Score</div></div>
+        <div class="stat-box"><div class="stat-val g" id="r-correct">0</div><div class="stat-key">Correct</div></div>
+        <div class="stat-box"><div class="stat-val r" id="r-wrong">0</div><div class="stat-key">Wrong</div></div>
+      </div>
+      <div class="lb-heading">🏅 Leaderboard</div>
+      <div id="lb-list"></div>
+      <div class="result-actions">
+        <button class="btn-ghost"   id="home-btn">← Home</button>
+        <button class="btn-primary" id="retry-btn">Play Again ⚡</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>

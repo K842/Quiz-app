@@ -1,0 +1,473 @@
+//   BRAINZAP – Dynamic Quiz App
+//    Concepts used:
+//    ✅ DOM Manipulation  – build UI elements dynamically
+//    ✅ Simulated AJAX    – fetchQuestions() with setTimeout
+//    ✅ jQuery-style $()  – custom selector helpers
+//    ✅ Local Storage     – leaderboard persists across sessions
+// ============================================= */
+
+/* ── Lightweight jQuery-style helpers ── */
+const $  = id  => document.getElementById(id);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const on = (el, ev, fn) => el.addEventListener(ev, fn);
+
+/* ── Question Bank (6 categories × 3 difficulties × 10 questions) ── */
+const BANK = {
+  general: {
+    easy: [
+      {q:"What is the capital of France?",          a:"Paris",           opts:["London","Paris","Berlin","Madrid"]},
+      {q:"How many sides does a triangle have?",    a:"3",               opts:["2","3","4","5"]},
+      {q:"Which planet is called the Red Planet?",  a:"Mars",            opts:["Venus","Saturn","Mars","Jupiter"]},
+      {q:"What color is the sky on a clear day?",   a:"Blue",            opts:["Blue","Green","Red","Yellow"]},
+      {q:"How many days are in a week?",            a:"7",               opts:["5","6","7","8"]},
+      {q:"What is 5 × 5?",                          a:"25",              opts:["20","25","30","35"]},
+      {q:"Which ocean is the largest?",             a:"Pacific",         opts:["Atlantic","Indian","Pacific","Arctic"]},
+      {q:"Boiling point of water (°C)?",            a:"100°C",           opts:["90°C","95°C","100°C","110°C"]},
+      {q:"How many months in a year?",              a:"12",              opts:["10","11","12","13"]},
+      {q:"Opposite of 'hot'?",                      a:"Cold",            opts:["Warm","Cool","Cold","Icy"]}
+    ],
+    medium: [
+      {q:"Who painted the Mona Lisa?",              a:"Leonardo da Vinci",opts:["Michelangelo","Leonardo da Vinci","Raphael","Donatello"]},
+      {q:"Chemical symbol for Gold?",               a:"Au",              opts:["Go","Gd","Au","Ag"]},
+      {q:"Bones in the adult human body?",          a:"206",             opts:["196","206","216","226"]},
+      {q:"Year World War II ended?",                a:"1945",            opts:["1943","1944","1945","1946"]},
+      {q:"Smallest country in the world?",          a:"Vatican City",    opts:["Monaco","San Marino","Vatican City","Liechtenstein"]},
+      {q:"Gas plants absorb from the atmosphere?",  a:"Carbon Dioxide",  opts:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"]},
+      {q:"Who wrote Romeo and Juliet?",             a:"Shakespeare",     opts:["Dickens","Shakespeare","Tolstoy","Hemingway"]},
+      {q:"Speed of light (km/s)?",                  a:"300,000 km/s",    opts:["150,000 km/s","200,000 km/s","250,000 km/s","300,000 km/s"]},
+      {q:"Element with atomic number 1?",           a:"Hydrogen",        opts:["Helium","Oxygen","Hydrogen","Carbon"]},
+      {q:"How many continents on Earth?",           a:"7",               opts:["5","6","7","8"]}
+    ],
+    hard: [
+      {q:"Fibonacci number after 144?",             a:"233",             opts:["200","221","233","256"]},
+      {q:"Country with the most natural lakes?",    a:"Canada",          opts:["Russia","USA","Canada","Finland"]},
+      {q:"Who discovered Penicillin?",              a:"Alexander Fleming",opts:["Pasteur","Alexander Fleming","Marie Curie","Newton"]},
+      {q:"Capital of Kazakhstan?",                  a:"Astana",          opts:["Almaty","Bishkek","Astana","Tashkent"]},
+      {q:"What does RAM stand for?",                a:"Random Access Memory",opts:["Read Access Memory","Random Access Memory","Rapid Array Memory","Read Array Module"]},
+      {q:"Half-life of Carbon-14?",                 a:"5,730 years",     opts:["1,000 years","5,730 years","10,000 years","50,000 years"]},
+      {q:"Who wrote Critique of Pure Reason?",      a:"Immanuel Kant",   opts:["Hegel","Descartes","Immanuel Kant","Nietzsche"]},
+      {q:"How many zeros does a Googol have?",      a:"100",             opts:["10","50","100","1000"]},
+      {q:"Rarest blood type?",                      a:"AB-",             opts:["O-","B-","AB+","AB-"]},
+      {q:"Year the Eiffel Tower was completed?",    a:"1889",            opts:["1875","1882","1889","1901"]}
+    ]
+  },
+  science: {
+    easy: [
+      {q:"What is H₂O commonly known as?",         a:"Water",           opts:["Hydrogen","Water","Oxygen","Salt"]},
+      {q:"What force keeps us on the ground?",      a:"Gravity",         opts:["Magnetism","Gravity","Friction","Tension"]},
+      {q:"Center of an atom?",                      a:"Nucleus",         opts:["Proton","Electron","Nucleus","Core"]},
+      {q:"Planet closest to the Sun?",              a:"Mercury",         opts:["Venus","Mercury","Earth","Mars"]},
+      {q:"Animals that eat only plants?",           a:"Herbivores",      opts:["Carnivores","Omnivores","Herbivores","Insectivores"]},
+      {q:"Chambers in the human heart?",            a:"4",               opts:["2","3","4","5"]},
+      {q:"Hardest natural substance?",              a:"Diamond",         opts:["Iron","Quartz","Diamond","Granite"]},
+      {q:"How plants make food?",                   a:"Photosynthesis",  opts:["Respiration","Photosynthesis","Digestion","Osmosis"]},
+      {q:"Powerhouse of the cell?",                 a:"Mitochondria",    opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"]},
+      {q:"Gas humans exhale?",                      a:"Carbon Dioxide",  opts:["Oxygen","Nitrogen","Carbon Dioxide","Helium"]}
+    ],
+    medium: [
+      {q:"Chemical formula for table salt?",        a:"NaCl",            opts:["KCl","NaCl","MgO","CaCO₃"]},
+      {q:"Speed of sound in air (m/s)?",            a:"343 m/s",         opts:["200 m/s","343 m/s","500 m/s","700 m/s"]},
+      {q:"Which organ produces insulin?",           a:"Pancreas",        opts:["Liver","Pancreas","Kidney","Stomach"]},
+      {q:"Most abundant gas in atmosphere?",        a:"Nitrogen",        opts:["Oxygen","Carbon Dioxide","Nitrogen","Argon"]},
+      {q:"Type of wave that light is?",             a:"Electromagnetic", opts:["Sound","Mechanical","Electromagnetic","Seismic"]},
+      {q:"Human chromosome count?",                 a:"46",              opts:["23","44","46","48"]},
+      {q:"Unit of electrical resistance?",          a:"Ohm",             opts:["Volt","Ampere","Ohm","Watt"]},
+      {q:"Planet with the most moons?",             a:"Saturn",          opts:["Jupiter","Saturn","Uranus","Neptune"]},
+      {q:"pH of pure water?",                       a:"7",               opts:["5","6","7","8"]},
+      {q:"Nearest star to Earth?",                  a:"Proxima Centauri",opts:["Sirius","Proxima Centauri","Betelgeuse","Vega"]}
+    ],
+    hard: [
+      {q:"Avogadro's number?",                      a:"6.022 × 10²³",   opts:["3.14 × 10²³","6.022 × 10²³","9.11 × 10²³","1.67 × 10²⁴"]},
+      {q:"Particle with negative charge?",          a:"Electron",        opts:["Proton","Neutron","Electron","Positron"]},
+      {q:"Most electronegative element?",           a:"Fluorine",        opts:["Oxygen","Chlorine","Fluorine","Nitrogen"]},
+      {q:"Proposed theory of relativity?",          a:"Einstein",        opts:["Newton","Bohr","Einstein","Heisenberg"]},
+      {q:"Boundary of a black hole?",               a:"Event Horizon",   opts:["Singularity","Photon Sphere","Event Horizon","Schwarzschild Radius"]},
+      {q:"Subatomic particle that gives mass?",     a:"Higgs Boson",     opts:["Gluon","Quark","Higgs Boson","Muon"]},
+      {q:"What does DNA stand for?",                a:"Deoxyribonucleic Acid",opts:["Dynamic Nucleic Acid","Deoxyribonucleic Acid","Deoxyribose Amino Acid","Dual Nucleic Arrangement"]},
+      {q:"Half-life of Uranium-238?",               a:"4.5 billion years",opts:["1 million years","100 million years","1 billion years","4.5 billion years"]},
+      {q:"Dark matter is composed of?",             a:"Unknown particles",opts:["Black holes","Neutrinos","Unknown particles","Antimatter"]},
+      {q:"Schrödinger equation describes?",         a:"Quantum wave functions",opts:["Electromagnetic fields","Relativity","Quantum wave functions","Thermodynamics"]}
+    ]
+  },
+  history: {
+    easy: [
+      {q:"First President of the USA?",             a:"George Washington",opts:["Abraham Lincoln","George Washington","Thomas Jefferson","John Adams"]},
+      {q:"Year World War I began?",                 a:"1914",            opts:["1912","1914","1916","1918"]},
+      {q:"Who built the Great Pyramids?",           a:"Ancient Egyptians",opts:["Romans","Greeks","Ancient Egyptians","Mesopotamians"]},
+      {q:"Julius Caesar was part of which empire?", a:"Roman Empire",    opts:["Greek Empire","Roman Empire","Ottoman Empire","Persian Empire"]},
+      {q:"Wall dividing East and West Berlin?",     a:"Berlin Wall",     opts:["Iron Curtain","Berlin Wall","Wall of China","Stone Wall"]},
+      {q:"First man on the Moon?",                  a:"Neil Armstrong",  opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"]},
+      {q:"Country where apartheid was practiced?",  a:"South Africa",    opts:["Zimbabwe","Kenya","South Africa","Nigeria"]},
+      {q:"Who invented the telephone?",             a:"Alexander Graham Bell",opts:["Thomas Edison","Nikola Tesla","Alexander Graham Bell","Marconi"]},
+      {q:"Year the Titanic sank?",                  a:"1912",            opts:["1910","1912","1914","1916"]},
+      {q:"Ancient wonder in Alexandria?",           a:"Lighthouse",      opts:["Colossus","Gardens","Lighthouse","Statue"]}
+    ],
+    medium: [
+      {q:"First female PM of the UK?",              a:"Margaret Thatcher",opts:["Theresa May","Margaret Thatcher","Elizabeth II","Harriet Harman"]},
+      {q:"Year the Magna Carta was signed?",        a:"1215",            opts:["1066","1215","1348","1492"]},
+      {q:"Country that gifted the Statue of Liberty?",a:"France",        opts:["Britain","Germany","France","Spain"]},
+      {q:"Who wrote the Communist Manifesto?",      a:"Marx & Engels",   opts:["Lenin","Marx & Engels","Trotsky","Stalin"]},
+      {q:"Last pharaoh of Ancient Egypt?",          a:"Cleopatra VII",   opts:["Nefertiti","Cleopatra VII","Ramesses II","Tutankhamun"]},
+      {q:"First Olympic Games city (modern era)?",  a:"Athens",          opts:["Rome","Olympia","Athens","Sparta"]},
+      {q:"Year the Soviet Union collapsed?",        a:"1991",            opts:["1985","1989","1991","1993"]},
+      {q:"Which war was fought in the USA (N vs S)?",a:"Civil War",      opts:["Revolutionary War","Civil War","War of 1812","Mexican-American War"]},
+      {q:"Napoleon's first wife?",                  a:"Joséphine",       opts:["Marie Louise","Joséphine","Catherine","Marie Antoinette"]},
+      {q:"Hitler's political party?",               a:"Nazi Party",      opts:["Fascist Party","Communist Party","Nazi Party","Nationalist Party"]}
+    ],
+    hard: [
+      {q:"Year of the Battle of Hastings?",         a:"1066",            opts:["1040","1066","1088","1100"]},
+      {q:"Emperor during Fall of Constantinople?",  a:"Constantine XI",  opts:["Justinian I","Constantine XI","Alexios I","Basil II"]},
+      {q:"First artificial satellite?",             a:"Sputnik 1",       opts:["Explorer 1","Sputnik 1","Vostok 1","Luna 1"]},
+      {q:"Largest empire in land area?",            a:"Mongol Empire",   opts:["British Empire","Roman Empire","Mongol Empire","Ottoman Empire"]},
+      {q:"First Emperor of China?",                 a:"Qin Shi Huang",   opts:["Han Wudi","Qin Shi Huang","Tang Taizong","Kublai Khan"]},
+      {q:"Year India gained independence?",         a:"1947",            opts:["1945","1946","1947","1948"]},
+      {q:"Assassinated to trigger WWI?",            a:"Franz Ferdinand", opts:["Kaiser Wilhelm","Franz Ferdinand","Tsar Nicholas","Gavrilo Princip"]},
+      {q:"Treaty that ended WWI?",                  a:"Treaty of Versailles",opts:["Treaty of Paris","Treaty of Versailles","Treaty of Utrecht","Treaty of Westphalia"]},
+      {q:"French Revolution began in?",             a:"1789",            opts:["1776","1783","1789","1799"]},
+      {q:"Taj Mahal was built by whom?",            a:"Shah Jahan for Mumtaz",opts:["Akbar for Jodha","Shah Jahan for Mumtaz","Aurangzeb for Dilras","Babur for Humayun"]}
+    ]
+  },
+  sports: {
+    easy: [
+      {q:"Players on a soccer team?",               a:"11",              opts:["9","10","11","12"]},
+      {q:"Sport using racket and shuttlecock?",      a:"Badminton",       opts:["Tennis","Squash","Badminton","Pickleball"]},
+      {q:"Olympic flag ring count?",                a:"5",               opts:["4","5","6","7"]},
+      {q:"Sport played at Wimbledon?",              a:"Tennis",          opts:["Cricket","Golf","Tennis","Polo"]},
+      {q:"Points for a touchdown (NFL)?",           a:"6",               opts:["3","4","6","7"]},
+      {q:"Sport where you play a 'birdie'?",        a:"Golf",            opts:["Tennis","Golf","Badminton","Cricket"]},
+      {q:"Players on a basketball court per team?",  a:"5",               opts:["4","5","6","7"]},
+      {q:"How many laps in an Olympic 400m race?",  a:"1",               opts:["1","2","4","8"]},
+      {q:"Country hosting Tour de France?",         a:"France",          opts:["Italy","Belgium","France","Spain"]},
+      {q:"Shape of a baseball infield?",            a:"Square",          opts:["Diamond","Circle","Triangle","Square"]}
+    ],
+    medium: [
+      {q:"Most Olympic gold medals holder?",        a:"Michael Phelps",  opts:["Usain Bolt","Carl Lewis","Michael Phelps","Mark Spitz"]},
+      {q:"Maximum break in snooker?",               a:"147",             opts:["100","135","147","150"]},
+      {q:"Country with most FIFA World Cups?",      a:"Brazil",          opts:["Germany","Italy","Argentina","Brazil"]},
+      {q:"Balls in a cricket over?",                a:"6",               opts:["4","5","6","8"]},
+      {q:"Tennis term for zero?",                   a:"Love",            opts:["Zero","Nil","Love","Nothing"]},
+      {q:"Grand Slams in tennis?",                  a:"4",               opts:["2","3","4","5"]},
+      {q:"Country that invented rugby?",            a:"England",         opts:["Australia","New Zealand","South Africa","England"]},
+      {q:"Swimming stroke with simultaneous arms?", a:"Butterfly",       opts:["Breaststroke","Backstroke","Butterfly","Freestyle"]},
+      {q:"Marathon length (km)?",                   a:"42.195 km",       opts:["40 km","41.5 km","42.195 km","43 km"]},
+      {q:"Diameter of a basketball hoop (inches)?", a:"18 inches",       opts:["16 inches","18 inches","20 inches","22 inches"]}
+    ],
+    hard: [
+      {q:"First modern Olympic Games year?",        a:"1896",            opts:["1892","1896","1900","1904"]},
+      {q:"Most men's Grand Slam singles titles?",   a:"Novak Djokovic",  opts:["Roger Federer","Rafael Nadal","Novak Djokovic","Pete Sampras"]},
+      {q:"Country winning first FIFA World Cup?",   a:"Uruguay",         opts:["Brazil","Argentina","Uruguay","Italy"]},
+      {q:"Weight of men's shot put (kg)?",          a:"7.26 kg",         opts:["5.5 kg","6 kg","7.26 kg","8 kg"]},
+      {q:"City of 1972 Summer Olympics?",           a:"Munich",          opts:["Tokyo","Mexico City","Munich","Montreal"]},
+      {q:"Hand of God goal scorer (1986)?",         a:"Maradona",        opts:["Pelé","Ronaldo","Maradona","Zidane"]},
+      {q:"Sport using 'chukker' as time unit?",     a:"Polo",            opts:["Cricket","Polo","Field Hockey","Lacrosse"]},
+      {q:"Points jersey in cycling?",               a:"Green Jersey",    opts:["Yellow Jersey","Red Jersey","Green Jersey","White Jersey"]},
+      {q:"8 gold medals at 2008 Olympics winner?",  a:"Michael Phelps",  opts:["Ian Thorpe","Ryan Lochte","Michael Phelps","Mark Spitz"]},
+      {q:"Fastest recorded tennis serve (km/h)?",   a:"263 km/h",        opts:["230 km/h","245 km/h","263 km/h","280 km/h"]}
+    ]
+  },
+  tech: {
+    easy: [
+      {q:"CPU stands for?",                         a:"Central Processing Unit",opts:["Central Power Unit","Central Processing Unit","Computer Processing Unit","Core Processing Unit"]},
+      {q:"WWW stands for?",                         a:"World Wide Web",  opts:["World Wide Web","Wide World Web","World Wide Wire","Web World Wide"]},
+      {q:"Company that made the iPhone?",           a:"Apple",           opts:["Samsung","Apple","Google","Microsoft"]},
+      {q:"Language used for web styling?",          a:"CSS",             opts:["HTML","CSS","JavaScript","Python"]},
+      {q:"URL stands for?",                         a:"Uniform Resource Locator",opts:["Universal Resource Link","Uniform Resource Locator","Unique Reference Location","Universal Record Locator"]},
+      {q:"Key to refresh a webpage?",               a:"F5",              opts:["F1","F3","F5","F7"]},
+      {q:"Most used OS on servers?",                a:"Linux",           opts:["Windows","macOS","Linux","Unix"]},
+      {q:"What does RAM store?",                    a:"Temporary data",  opts:["Permanent files","Operating System","Temporary data","Internet data"]},
+      {q:"PDF stands for?",                         a:"Portable Document Format",opts:["Print Document File","Portable Document Format","Page Display Format","Portable Data Form"]},
+      {q:"Language primarily for AI and data science?",a:"Python",       opts:["Java","C++","Python","Ruby"]}
+    ],
+    medium: [
+      {q:"Co-founder of Microsoft?",                a:"Bill Gates",      opts:["Steve Jobs","Bill Gates","Larry Page","Mark Zuckerberg"]},
+      {q:"HTTP stands for?",                        a:"HyperText Transfer Protocol",opts:["High Transfer Text Protocol","HyperText Transfer Protocol","Hyper Text Transmission Protocol","HTML Transfer Protocol"]},
+      {q:"Year first iPhone released?",             a:"2007",            opts:["2005","2006","2007","2008"]},
+      {q:"SQL stands for?",                         a:"Structured Query Language",opts:["Simple Query Language","Structured Query Language","Sequential Query Language","Server Query Language"]},
+      {q:"Developer of Android OS?",                a:"Google",          opts:["Apple","Microsoft","Google","Samsung"]},
+      {q:"Binary for decimal 10?",                  a:"1010",            opts:["0101","1001","1010","1100"]},
+      {q:"Protocol to send emails?",                a:"SMTP",            opts:["HTTP","FTP","SMTP","POP3"]},
+      {q:"JavaScript framework by Facebook?",       a:"React",           opts:["Angular","Vue","React","Svelte"]},
+      {q:"What is an IP address?",                  a:"A network identifier",opts:["An email address","A file location","A network identifier","A password format"]},
+      {q:"GUI stands for?",                         a:"Graphical User Interface",opts:["General User Input","Graphical Unit Interface","Graphical User Interface","Global User Interface"]}
+    ],
+    hard: [
+      {q:"Time complexity of binary search?",       a:"O(log n)",        opts:["O(1)","O(n)","O(log n)","O(n²)"]},
+      {q:"CORS stands for?",                        a:"Cross-Origin Resource Sharing",opts:["Cross-Object Resource Sharing","Client-Origin Response System","Cross-Origin Resource Sharing","Cache-Origin Request Sync"]},
+      {q:"Inventor of the World Wide Web?",         a:"Tim Berners-Lee", opts:["Bill Gates","Vint Cerf","Tim Berners-Lee","Linus Torvalds"]},
+      {q:"Purpose of a hash function?",             a:"Map data to fixed-size values",opts:["Encrypt data securely","Compress files","Map data to fixed-size values","Sort arrays efficiently"]},
+      {q:"Sorting algorithm with O(n log n) average?",a:"Merge Sort",    opts:["Bubble Sort","Selection Sort","Merge Sort","Insertion Sort"]},
+      {q:"ACID in databases stands for?",           a:"Atomicity, Consistency, Isolation, Durability",opts:["Access, Control, Integrity, Data","Atomicity, Consistency, Isolation, Durability","Accuracy, Concurrency, Indexing, Data","Atomicity, Correctness, Integrity, Durability"]},
+      {q:"OSI layer that handles routing?",         a:"Network Layer",   opts:["Transport Layer","Data Link Layer","Network Layer","Session Layer"]},
+      {q:"What is a deadlock in computing?",        a:"Two processes blocking each other",opts:["A crashed program","Infinite loop","Two processes blocking each other","Memory overflow"]},
+      {q:"Data structure using FIFO?",              a:"Queue",           opts:["Stack","Heap","Queue","Tree"]},
+      {q:"Purpose of a CDN?",                       a:"Deliver content from nearby servers",opts:["Encrypt web traffic","Manage databases","Deliver content from nearby servers","Store user passwords"]}
+    ]
+  },
+  geography: {
+    easy: [
+      {q:"Largest continent?",                      a:"Asia",            opts:["Africa","Asia","North America","Europe"]},
+      {q:"Longest river in the world?",             a:"Nile",            opts:["Amazon","Yangtze","Nile","Mississippi"]},
+      {q:"Capital of Australia?",                   a:"Canberra",        opts:["Sydney","Melbourne","Canberra","Brisbane"]},
+      {q:"Country with the largest population?",    a:"India",           opts:["China","India","USA","Indonesia"]},
+      {q:"Continent of the Sahara Desert?",         a:"Africa",          opts:["Asia","South America","Africa","Australia"]},
+      {q:"Smallest continent?",                     a:"Australia",       opts:["Europe","Antarctica","Australia","South America"]},
+      {q:"Tallest mountain in the world?",          a:"Mount Everest",   opts:["K2","Mount Everest","Kangchenjunga","Lhotse"]},
+      {q:"Capital of Japan?",                       a:"Tokyo",           opts:["Beijing","Tokyo","Seoul","Bangkok"]},
+      {q:"Amazon rainforest is mostly in?",         a:"Brazil",          opts:["Peru","Colombia","Brazil","Venezuela"]},
+      {q:"Largest ocean?",                          a:"Pacific Ocean",   opts:["Atlantic Ocean","Indian Ocean","Pacific Ocean","Arctic Ocean"]}
+    ],
+    medium: [
+      {q:"Country with the most time zones?",       a:"France",          opts:["Russia","USA","France","China"]},
+      {q:"Capital of Canada?",                      a:"Ottawa",          opts:["Toronto","Montreal","Ottawa","Vancouver"]},
+      {q:"Largest African country by area?",        a:"Algeria",         opts:["Sudan","Libya","Algeria","DR Congo"]},
+      {q:"Sea between Europe and Africa?",          a:"Mediterranean Sea",opts:["Red Sea","Mediterranean Sea","Black Sea","Caspian Sea"]},
+      {q:"Most UNESCO World Heritage Sites?",       a:"Italy",           opts:["China","Spain","Italy","France"]},
+      {q:"Capital of Brazil?",                      a:"Brasília",        opts:["São Paulo","Rio de Janeiro","Brasília","Salvador"]},
+      {q:"Strait separating Europe and Africa?",    a:"Strait of Gibraltar",opts:["Strait of Hormuz","Strait of Gibraltar","Strait of Malacca","Drake Passage"]},
+      {q:"Highest waterfall in the world?",         a:"Angel Falls",     opts:["Victoria Falls","Niagara Falls","Angel Falls","Iguazu Falls"]},
+      {q:"Colosseum is located in?",                a:"Italy",           opts:["Greece","Turkey","Italy","Spain"]},
+      {q:"Largest country by area?",                a:"Russia",          opts:["Canada","China","USA","Russia"]}
+    ],
+    hard: [
+      {q:"Deepest lake in the world?",              a:"Lake Baikal",     opts:["Lake Superior","Lake Tanganyika","Caspian Sea","Lake Baikal"]},
+      {q:"Country with longest coastline?",         a:"Canada",          opts:["Russia","Norway","Australia","Canada"]},
+      {q:"Capital of Myanmar?",                     a:"Naypyidaw",       opts:["Rangoon","Mandalay","Naypyidaw","Bagan"]},
+      {q:"Largest cold desert?",                    a:"Antarctic Desert",opts:["Gobi","Patagonian","Arctic","Antarctic Desert"]},
+      {q:"Atacama Desert is in?",                   a:"Chile",           opts:["Peru","Argentina","Bolivia","Chile"]},
+      {q:"Deepest ocean trench?",                   a:"Mariana Trench",  opts:["Puerto Rico Trench","Mariana Trench","Java Trench","Tonga Trench"]},
+      {q:"Country with the most islands?",          a:"Sweden",          opts:["Indonesia","Philippines","Norway","Sweden"]},
+      {q:"Smallest country in Asia?",               a:"Maldives",        opts:["Singapore","Bahrain","Maldives","Brunei"]},
+      {q:"Ocean current keeping W. Europe warm?",   a:"Gulf Stream",     opts:["Humboldt Current","Gulf Stream","Kuroshio Current","Labrador Current"]},
+      {q:"Capital of Kazakhstan?",                  a:"Astana",          opts:["Almaty","Astana","Shymkent","Karaganda"]}
+    ]
+  }
+};
+
+/* ── State ── */
+let questions=[], idx=0, score=0, numCorrect=0, numWrong=0;
+let answered=false, timerID=null, timeLeft=15, lastScore=0;
+const MAX_TIME=15;
+let selectedCat='general', selectedDiff='easy';
+
+/* ── Utilities ── */
+function showScreen(id){
+  $$('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function toast(msg,ms=2200){
+  const t=$(  'toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),ms);
+}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+/* ── Category click (DOM Event) ── */
+on($('cat-grid'),'click',function(e){
+  const btn=e.target.closest('.cat-btn');
+  if(!btn)return;
+  $$('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedCat=btn.dataset.cat;
+});
+
+/* ── Difficulty click ── */
+on($('diff-row'),'click',function(e){
+  const btn=e.target.closest('.diff-btn');
+  if(!btn)return;
+  $$('.diff-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedDiff=btn.dataset.diff;
+});
+
+/* ── Simulated AJAX (setTimeout mimics network fetch) ── */
+function fetchQuestions(cat,diff,callback){
+  const pool=BANK[cat]&&BANK[cat][diff];
+  setTimeout(function(){           // <-- simulated async AJAX delay
+    if(!pool||!pool.length){ callback(null,'Not found'); return; }
+    callback(shuffle(pool).slice(0,10),null);
+  },800);
+}
+
+/* ── Start Quiz ── */
+on($('start-btn'),'click',function(){
+  // Show quiz screen with loading state
+  showScreen('quiz-screen');
+  $('q-text').textContent='Fetching questions…';
+  $('options').innerHTML='';
+  $('next-btn').style.display='none';
+  $('explanation').style.display='none';
+  $('prog').style.width='0%';
+
+  // Simulated AJAX call
+  fetchQuestions(selectedCat,selectedDiff,function(data,err){
+    if(err||!data){ toast('⚠️ Failed to load!'); showScreen('home-screen'); return; }
+    questions=data; idx=0; score=0; numCorrect=0; numWrong=0;
+    $('live-score').textContent='0';
+    $('q-total').textContent=questions.length;
+    renderQuestion();
+  });
+});
+
+/* ── Render Question (DOM Manipulation) ── */
+function renderQuestion(){
+  answered=false;
+  clearInterval(timerID);
+  const q=questions[idx];
+  const letters=['A','B','C','D'];
+
+  $('prog').style.width=((idx/questions.length)*100)+'%';
+  $('q-num').textContent=idx+1;
+  $('next-btn').style.display='none';
+  $('explanation').style.display='none';
+  $('q-text').textContent=q.q;
+
+  // Build option buttons dynamically
+  const container=$('options');
+  container.innerHTML='';
+  shuffle(q.opts).forEach(function(opt,i){
+    const btn=document.createElement('button');
+    btn.className='opt-btn';
+    btn.dataset.answer=opt;
+    btn.innerHTML='<span class="opt-letter">'+letters[i]+'</span><span>'+opt+'</span>';
+    btn.addEventListener('click',onAnswer);
+    container.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+/* ── Timer ── */
+function startTimer(){
+  timeLeft=MAX_TIME;
+  updateTimer();
+  timerID=setInterval(function(){
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){
+      clearInterval(timerID);
+      if(!answered){
+        answered=true; numWrong++;
+        toast("⏰ Time's up!");
+        lockOptions(null);
+        showExplanation();
+        showNextBtn();
+      }
+    }
+  },1000);
+}
+function updateTimer(){
+  const pct=(timeLeft/MAX_TIME)*100;
+  const f=$('timer-fill');
+  f.style.width=pct+'%';
+  f.className='timer-fill';
+  if(timeLeft<=5)f.classList.add('danger');
+  else if(timeLeft<=9)f.classList.add('warn');
+  $('timer-num').textContent=timeLeft;
+}
+
+/* ── Answer ── */
+function onAnswer(e){
+  if(answered)return;
+  answered=true;
+  clearInterval(timerID);
+  const btn=e.currentTarget;
+  const chosen=btn.dataset.answer;
+  const correct=questions[idx].a;
+  if(chosen===correct){
+    btn.classList.add('correct');
+    const pts=timeLeft*10;
+    score+=pts; numCorrect++;
+    $('live-score').textContent=score;
+    toast('✅ Correct! +'+pts+' pts');
+  } else {
+    btn.classList.add('wrong');
+    numWrong++;
+    toast('❌ Wrong!');
+  }
+  lockOptions(correct);
+  showExplanation();
+  showNextBtn();
+}
+function lockOptions(correctAns){
+  $$('.opt-btn').forEach(function(btn){
+    btn.disabled=true;
+    if(correctAns&&btn.dataset.answer===correctAns)btn.classList.add('correct');
+  });
+}
+function showExplanation(){
+  const el=$('explanation');
+  el.innerHTML='<b>✅ Correct Answer:</b> '+questions[idx].a;
+  el.style.display='block';
+}
+function showNextBtn(){
+  const btn=$('next-btn');
+  btn.textContent=idx<questions.length-1?'Next →':'See Results 🏆';
+  btn.style.display='inline-block';
+}
+
+on($('next-btn'),'click',function(){
+  idx++;
+  if(idx<questions.length){ renderQuestion(); }
+  else{ clearInterval(timerID); showResults(); }
+});
+
+/* ── Results + Local Storage ── */
+function showResults(){
+  showScreen('result-screen');
+  lastScore=score;
+  const pct=Math.round((numCorrect/questions.length)*100);
+  let emoji,title,sub;
+  if(pct>=90){emoji='🏆';title='Legendary!';sub='You\'re a trivia master!';}
+  else if(pct>=70){emoji='🎯';title='Excellent!';sub='You really know your stuff!';}
+  else if(pct>=50){emoji='👍';title='Good Job!';sub='Solid effort — keep it up!';}
+  else if(pct>=30){emoji='🤔';title='Keep Going!';sub='Study up and try again!';}
+  else{emoji='💡';title='Try Again!';sub='Every expert was once a beginner.';}
+  $('r-emoji').textContent=emoji;
+  $('r-title').textContent=title;
+  $('r-sub').textContent=sub;
+  $('r-score').textContent=score;
+  $('r-correct').textContent=numCorrect;
+  $('r-wrong').textContent=numWrong;
+
+  // ── LOCAL STORAGE ──
+  const catEl=document.querySelector('.cat-btn.selected');
+  const catName=catEl?catEl.textContent.trim():selectedCat;
+  const entry={score,correct:numCorrect,total:questions.length,cat:catName,diff:selectedDiff,date:new Date().toLocaleDateString()};
+  let board=JSON.parse(localStorage.getItem('brainzap_board')||'[]');
+  board.push(entry);
+  board.sort((a,b)=>b.score-a.score);
+  board=board.slice(0,5);
+  localStorage.setItem('brainzap_board',JSON.stringify(board));
+  renderLeaderboard(board);
+}
+
+function renderLeaderboard(board){
+  const list=$('lb-list');
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  list.innerHTML='';
+  if(!board.length){list.innerHTML='<div class="lb-empty">No scores yet!</div>';return;}
+  const newIdx=board.findIndex(r=>r.score===lastScore);
+  board.forEach(function(row,i){
+    const div=document.createElement('div');
+    div.className='lb-row'+(i===newIdx?' me':'');
+    div.innerHTML='<span class="lb-rank">'+(medals[i]||(i+1))+'</span>'
+      +'<span class="lb-name">'+row.cat+' · <em style="font-size:11px;color:var(--muted)">'+row.diff+'</em></span>'
+      +'<span class="lb-score">'+row.score+' pts</span>'
+      +'<span class="lb-date">'+row.date+'</span>';
+    list.appendChild(div);
+  });
+}
+
+on($('home-btn'),'click',function(){ clearInterval(timerID); showScreen('home-screen'); });
+on($('retry-btn'),'click',function(){ $('start-btn').click(); });
+
+/* ── Init ── */
+(function(){
+  const b=JSON.parse(localStorage.getItem('brainzap_board')||'[]');
+  if(b.length) setTimeout(()=>toast('🏅 Best score: '+b[0].score+' pts',3000),600);
+})();
